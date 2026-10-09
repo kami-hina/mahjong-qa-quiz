@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3d3e">
+<title>麻雀質問クイズ</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root {
+    --bg: #0e2a2b; --panel: #15393a; --panel2: #1c4647; --line: #2a5c5d;
+    --fg: #e9f1ef; --muted: #9fbab8; --accent: #f2c14e; --accent-fg: #1a1a1a;
+    --ok: #4fc08d; --ng: #e6705c; --mine: #2b6b6d; --theirs: #3b3f55;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; font-size: 16px; line-height: 1.55; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  header { position: sticky; top: 0; z-index: 10; background: rgba(14,42,43,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+  header h1 { font-size: 17px; margin: 0; flex: 1; font-weight: 700; letter-spacing: .02em; }
+  header button { background: none; border: 1px solid var(--line); color: var(--fg); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .card h2 { font-size: 15px; margin: 0 0 10px; color: var(--muted); font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .stat { background: var(--panel2); border-radius: 10px; padding: 10px 6px; text-align: center; }
+  .stat b { display: block; font-size: 22px; line-height: 1.1; }
+  .stat span { font-size: 11px; color: var(--muted); }
+  .stat.ok b { color: var(--ok); } .stat.ng b { color: var(--ng); } .stat.new b { color: var(--accent); }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+  .seg label { flex: 1 1 calc(50% - 8px); }
+  .seg input { display: none; }
+  .seg span { display: block; text-align: center; padding: 10px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); font-size: 14px; }
+  .seg input:checked + span { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 700; }
+  select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--fg); font-size: 15px; }
+  .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--accent); color: var(--accent-fg); font-size: 17px; font-weight: 700; margin-top: 8px; }
+  .btn.secondary { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); font-weight: 600; }
+  .btn:disabled { opacity: .45; }
+  .row { display: flex; gap: 10px; }
+  .row .btn { margin-top: 0; }
+  .meta { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--panel2); color: var(--muted); margin-left: 6px; }
+  .tag.ok { background: rgba(79,192,141,.18); color: var(--ok); } .tag.ng { background: rgba(230,112,92,.18); color: var(--ng); }
+  .shots { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x mandatory; }
+  .shots img { height: 46vh; max-height: 420px; border-radius: 10px; border: 1px solid var(--line); background: #000; scroll-snap-align: start; flex: 0 0 auto; }
+  .shots.single { justify-content: center; }
+  .bubble { position: relative; border-radius: 14px; padding: 12px 14px; margin: 10px 0; white-space: pre-wrap; word-break: break-word; }
+  .bubble.q { background: var(--mine); border-top-right-radius: 4px; }
+  .bubble.a { background: var(--theirs); border-top-left-radius: 4px; }
+  .bubble .who { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .bubble .note { display: block; font-size: 11px; color: var(--accent); margin-top: 6px; }
+  .bubble img { max-width: 100%; border-radius: 8px; margin-top: 6px; display: block; }
+  .mask { position: relative; min-height: 120px; }
+  .mask .cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: repeating-linear-gradient(135deg, #1c2a3c 0 12px, #223349 12px 24px); border-radius: 14px; color: var(--muted); font-size: 14px; }
+  .mask .cover b { color: var(--fg); font-size: 16px; }
+  .mask .hidden-body { visibility: hidden; }
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .grade button { padding: 14px 8px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; color: #fff; }
+  .grade .ok { background: var(--ok); color: #0b2b1c; } .grade .ng { background: var(--ng); }
+  .progress { height: 4px; background: var(--panel2); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+  .progress i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
+  .list-item { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .list-item:last-child { border-bottom: none; }
+  .list-item img { width: 44px; height: 44px; object-fit: cover; object-position: center 38%; border-radius: 8px; background: #000; flex: 0 0 auto; }
+  .list-item .t { flex: 1; min-width: 0; }
+  .list-item .t p { margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list-item .t small { color: var(--muted); font-size: 12px; }
+  .date-head { font-size: 13px; color: var(--accent); margin: 14px 0 4px; font-weight: 700; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 50; display: none; align-items: center; justify-content: center; overflow: auto; }
+  .overlay.show { display: flex; }
+  .overlay img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .overlay .close { position: fixed; top: 12px; right: 14px; background: rgba(255,255,255,.15); color: #fff; border: none; font-size: 22px; width: 40px; height: 40px; border-radius: 50%; }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px 16px 24px; }
+  footer button { background: none; border: none; color: var(--muted); text-decoration: underline; font-size: 12px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) { --bg: #f1f5f4; --panel: #ffffff; --panel2: #e8efee; --line: #d3dedd; --fg: #15302f; --muted: #5d7472; --mine: #d6ecdb; --theirs: #e6e9f3; }
+    :root:not([data-theme="dark"]) .mask .cover { background: repeating-linear-gradient(135deg, #dde3ea 0 12px, #cfd7e0 12px 24px); }
+    :root:not([data-theme="dark"]) header { background: rgba(241,245,244,.92); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">麻雀質問クイズ</h1>
+  <button id="btn-home" hidden>ホーム</button>
+  <button id="btn-list">一覧</button>
+</header>
+<main id="app"></main>
+<footer>
+  LINE「麻雀質問用」の質問と磯部さんの回答から出題 ・ v<span id="ver"></span>
+  <button id="btn-reload">最新版に更新</button>
+</footer>
+<div class="overlay" id="overlay"><button class="close" aria-label="閉じる">×</button><img alt=""></div>
+
+<script>
+const VERSION = '1.0.0';
+const STORE_KEY = 'mahjong-qa-quiz-progress-v1';
+const SET_KEY = 'mahjong-qa-quiz-settings-v1';
+let DATA = [];              // questions.json
+let progress = loadJSON(STORE_KEY, {});   // id -> {status:'ok'|'ng', count, last}
+let settings = loadJSON(SET_KEY, { mode: 'new', order: 'random', date: 'all' });
+let queue = [], pos = 0, revealed = false;
+const $ = (s, el = document) => el.querySelector(s);
+const app = $('#app');
+$('#ver').textContent = VERSION;
+
+function loadJSON(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }
+function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function fmtDate(d) { const [y, m, dd] = d.split('-'); return `${y}/${+m}/${+dd}`; }
+function statusOf(q) { return progress[q.id]?.status || 'new'; }
+function quizable() { return DATA.filter(q => q.answers.length); }
+
+function applyFilter() {
+  let list = quizable();
+  if (settings.date !== 'all') list = list.filter(q => q.date === settings.date);
+  const m = settings.mode;
+  if (m === 'new') list = list.filter(q => statusOf(q) === 'new');
+  else if (m === 'ng') list = list.filter(q => statusOf(q) === 'ng');
+  else if (m === 'ok') list = list.filter(q => statusOf(q) === 'ok');
+  if (settings.order === 'random') list = shuffle(list.slice());
+  return list;
+}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* ---------- ホーム ---------- */
+function renderHome() {
+  $('#btn-home').hidden = true; $('#btn-list').hidden = false; $('#title').textContent = '麻雀質問クイズ';
+  const all = quizable();
+  const c = { ok: 0, ng: 0, new: 0 };
+  all.forEach(q => c[statusOf(q)]++);
+  const dates = [...new Set(all.map(q => q.date))].sort().reverse();
+  const count = applyFilter().length;
+  app.innerHTML = `
+    <div class="card">
+      <h2>学習状況</h2>
+      <div class="stats">
+        <div class="stat"><b>${all.length}</b><span>問題数</span></div>
+        <div class="stat ok"><b>${c.ok}</b><span>覚えた</span></div>
+        <div class="stat ng"><b>${c.ng}</b><span>要復習</span></div>
+        <div class="stat new"><b>${c.new}</b><span>未出題</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>出題する問題</h2>
+      <div class="seg" id="mode">
+        ${[['new', '未出題だけ'], ['ng', '要復習だけ'], ['all', 'すべて'], ['ok', '覚えた問題']].map(([v, l]) => `<label><input type="radio" name="mode" value="${v}" ${settings.mode === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}
+      </div>
+      <p class="hint">日付で絞り込み</p>
+      <select id="date"><option value="all">すべての日付</option>${dates.map(d => `<option value="${d}" ${settings.date === d ? 'selected' : ''}>${fmtDate(d)}（${all.filter(q => q.date === d).length}問）</option>`).join('')}</select>
+      <p class="hint">出題順</p>
+      <div class="seg" id="order">
+        ${[['random', 'ランダム'], ['time', '日付順']].map(([v, l]) => `<label><input type="radio" name="order" value="${v}" ${settings.order === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}
+      </div>
+      <button class="btn" id="start" ${count ? '' : 'disabled'}>${count ? `スタート（${count}問）` : '該当する問題がありません'}</button>
+    </div>
+    <div class="card">
+      <h2>使い方</h2>
+      <p class="hint" style="margin:0">かみむらひなさんが送った牌譜画像と質問を見て、磯部さんの回答（何を切るべきか・解説）を思い出してから「答えを見る」。覚えていたかを自己採点すると、要復習リストに蓄積されます。<br>データはこの端末のブラウザ内にだけ保存されます。</p>
+    </div>`;
+  app.querySelectorAll('input[name=mode]').forEach(r => r.onchange = () => { settings.mode = r.value; saveJSON(SET_KEY, settings); renderHome(); });
+  app.querySelectorAll('input[name=order]').forEach(r => r.onchange = () => { settings.order = r.value; saveJSON(SET_KEY, settings); });
+  $('#date').onchange = e => { settings.date = e.target.value; saveJSON(SET_KEY, settings); renderHome(); };
+  $('#start').onclick = () => { queue = applyFilter(); pos = 0; if (queue.length) renderQuiz(); };
+}
+
+/* ---------- クイズ ---------- */
+function shotsHTML(q) {
+  if (!q.images.length) return '<p class="hint">（この質問に画像はありません）</p>';
+  return `<div class="shots ${q.images.length === 1 ? 'single' : ''}">${q.images.map(f => `<img src="images/${f}" alt="牌譜" loading="lazy" data-full="images/${f}">`).join('')}</div>`;
+}
+function answersHTML(q) {
+  return q.answers.map(a => `<div class="bubble a"><span class="who">磯部さん ${esc(a.time)}</span>${esc(a.text)}${a.image ? `<img src="images/${a.image}" alt="回答画像" data-full="images/${a.image}">` : ''}${a.note ? `<span class="note">※${esc(a.note)}</span>` : ''}</div>`).join('');
+}
+function renderQuiz() {
+  const q = queue[pos]; revealed = false;
+  $('#btn-home').hidden = false; $('#btn-list').hidden = true; $('#title').textContent = `${pos + 1} / ${queue.length}`;
+  const st = statusOf(q);
+  app.innerHTML = `
+    <div class="progress"><i style="width:${(pos / queue.length) * 100}%"></i></div>
+    <div class="card">
+      <div class="meta"><span>${fmtDate(q.date)} ${q.time}</span><span>${st === 'ok' ? '<span class="tag ok">覚えた</span>' : st === 'ng' ? '<span class="tag ng">要復習</span>' : '<span class="tag">未出題</span>'}${q.inherited ? '<span class="tag">画像は直前の質問と共通</span>' : ''}</span></div>
+      ${shotsHTML(q)}
+      <div class="bubble q"><span class="who">かみむらひな</span>${esc(q.question)}${q.extra?.length ? '\n' + esc(q.extra.join('\n')) : ''}</div>
+      <div class="mask" id="mask">
+        <div class="hidden-body">${answersHTML(q)}</div>
+        <div class="cover"><b>磯部さんの回答</b><span>タップして答えを見る</span></div>
+      </div>
+      <div id="after"></div>
+    </div>
+    <div class="row">
+      <button class="btn secondary" id="prev" ${pos === 0 ? 'disabled' : ''}>← 前へ</button>
+      <button class="btn secondary" id="skip">スキップ →</button>
+    </div>`;
+  $('#mask').onclick = reveal;
+  $('#prev').onclick = () => { if (pos > 0) { pos--; renderQuiz(); } };
+  $('#skip').onclick = next;
+  bindZoom();
+  window.scrollTo(0, 0);
+}
+function reveal() {
+  if (revealed) return; revealed = true;
+  const m = $('#mask'); m.querySelector('.cover').remove(); m.querySelector('.hidden-body').classList.remove('hidden-body'); m.onclick = null;
+  $('#after').innerHTML = `<p class="hint" style="text-align:center">回答を覚えていましたか？</p><div class="grade"><button class="ok" id="g-ok">覚えてた</button><button class="ng" id="g-ng">覚えてなかった</button></div>`;
+  $('#g-ok').onclick = () => grade('ok'); $('#g-ng').onclick = () => grade('ng');
+  bindZoom();
+}
+function grade(s) {
+  const q = queue[pos]; const p = progress[q.id] || { count: 0 };
+  p.status = s; p.count++; p.last = Date.now(); progress[q.id] = p; saveJSON(STORE_KEY, progress);
+  next();
+}
+function next() {
+  if (pos + 1 < queue.length) { pos++; renderQuiz(); }
+  else renderDone();
+}
+function renderDone() {
+  $('#title').textContent = '完了';
+  const ids = new Set(queue.map(q => q.id));
+  const ok = queue.filter(q => statusOf(q) === 'ok').length, ng = queue.filter(q => statusOf(q) === 'ng').length;
+  app.innerHTML = `<div class="card"><h2>おつかれさまでした</h2>
+    <div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat ok"><b>${ok}</b><span>覚えた</span></div><div class="stat ng"><b>${ng}</b><span>要復習</span></div></div>
+    <button class="btn" id="again" ${ng ? '' : 'disabled'}>要復習をもう一度（${ng}問）</button>
+    <button class="btn secondary" id="home">ホームへ</button></div>`;
+  $('#again').onclick = () => { queue = shuffle(queue.filter(q => ids.has(q.id) && statusOf(q) === 'ng')); pos = 0; renderQuiz(); };
+  $('#home').onclick = renderHome;
+}
+
+/* ---------- 一覧 ---------- */
+function renderList() {
+  $('#btn-home').hidden = false; $('#btn-list').hidden = true; $('#title').textContent = '問題一覧';
+  const groups = {};
+  DATA.forEach(q => (groups[q.date] ||= []).push(q));
+  const dates = Object.keys(groups).sort().reverse();
+  app.innerHTML = `<div class="card">${dates.map(d => `<div class="date-head">${fmtDate(d)}（${groups[d].filter(q => q.answers.length).length}問）</div>${groups[d].map(q => {
+    const st = statusOf(q); const na = !q.answers.length;
+    return `<div class="list-item" data-id="${q.id}">${q.images[0] ? `<img src="images/${q.images[0]}" alt="" loading="lazy">` : '<div style="width:44px"></div>'}<div class="t"><p>${esc(q.question)}</p><small>${q.time} ・ ${na ? '回答なし' : st === 'ok' ? '覚えた' : st === 'ng' ? '要復習' : '未出題'}${q.answers.length > 1 ? ` ・ 回答${q.answers.length}件` : ''}</small></div></div>`;
+  }).join('')}`).join('')}</div>`;
+  app.querySelectorAll('.list-item').forEach(el => el.onclick = () => {
+    const q = DATA.find(x => x.id === el.dataset.id);
+    queue = [q]; pos = 0; renderQuiz();
+    if (!q.answers.length) { $('#mask').innerHTML = '<p class="empty">この質問にはまだ回答がありません</p>'; $('#mask').onclick = null; }
+  });
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 画像拡大 ---------- */
+const overlay = $('#overlay');
+function bindZoom() { app.querySelectorAll('img[data-full]').forEach(img => img.onclick = e => { e.stopPropagation(); overlay.querySelector('img').src = img.dataset.full; overlay.classList.add('show'); }); }
+overlay.onclick = () => overlay.classList.remove('show');
+
+$('#btn-home').onclick = renderHome;
+$('#btn-list').onclick = renderList;
+$('#btn-reload').onclick = async () => {
+  if (navigator.serviceWorker) { const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.unregister(); }
+  if (window.caches) { const ks = await caches.keys(); for (const k of ks) await caches.delete(k); }
+  location.reload(true);
+};
+
+fetch('data/questions.json?v=' + VERSION).then(r => r.json()).then(d => { DATA = d; renderHome(); })
+  .catch(e => { app.innerHTML = `<div class="card"><p class="empty">データを読み込めませんでした<br>${esc(e.message)}</p></div>`; });
+</script>
+</body>
+</html>

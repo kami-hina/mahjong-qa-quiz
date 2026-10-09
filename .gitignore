@@ -1,0 +1,8 @@
+tools/profile/
+tools/line-ext/
+tools/*.png
+tools/*.log
+tools/raw.json
+tools/paired.json
+tools/report.txt
+node_modules/

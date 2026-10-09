@@ -1,0 +1,9 @@
+{
+  "name": "麻雀質問クイズ",
+  "short_name": "質問クイズ",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0e2a2b",
+  "theme_color": "#0f3d3e",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

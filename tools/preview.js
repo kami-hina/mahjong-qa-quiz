@@ -1,0 +1,24 @@
+const { chromium } = require('C:/Users/hinap/AppData/Local/npm-cache/_npx/9833c18b2d85bc59/node_modules/playwright');
+(async () => {
+  const b = await chromium.launch({ executablePath: 'C:/Users/hinap/AppData/Local/ms-playwright/chromium-1223/chrome-win64/chrome.exe', headless: true });
+  const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  p.on('pageerror', e => console.log('[pageerror]', String(e)));
+  p.on('console', m => { if (m.type() === 'error') console.log('[console]', m.text()); });
+  await p.goto('http://127.0.0.1:8765/');
+  await p.waitForSelector('#start');
+  await p.screenshot({ path: 'tools/pv-home.png' });
+  await p.click('input[name=mode][value=all] + span');
+  await p.click('#start');
+  await p.waitForSelector('#mask');
+  await p.screenshot({ path: 'tools/pv-quiz.png', fullPage: true });
+  await p.click('#mask');
+  await p.waitForSelector('#g-ok');
+  await p.screenshot({ path: 'tools/pv-reveal.png', fullPage: true });
+  await p.click('#g-ng');
+  await p.waitForSelector('#mask');
+  await p.click('#btn-home'); await p.waitForSelector('#start');
+  await p.click('#btn-list'); await p.waitForSelector('.list-item');
+  await p.screenshot({ path: 'tools/pv-list.png' });
+  console.log('stats:', await p.evaluate(() => [...document.querySelectorAll('.stat')].map(e => e.innerText.replace(/\n/g, ' ')).join(' | ')));
+  await b.close();
+})().catch(e => { console.error(e); process.exit(1); });
